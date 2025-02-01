@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Py Restaurant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            padding: 20px;
+            color: white;
+        }
+        .menu {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            color: black;
+        }
+        .order-form {
+            margin-top: 20px;
+        }
+        .total {
+            margin-top: 20px;
+            font-size: 22px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.8);
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+            color: black;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #ff5e62;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #e04b50;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Py Restaurant</h1>
+    <div class="menu">
+        <h2>Menu</h2>
+        <p>Pizza: Rs40</p>
+        <p>Pasta: Rs50</p>
+        <p>Burger: Rs60</p>
+        <p>Coffee: Rs70</p>
+        <p>Butter Chicken: Rs80</p>
+    </div>
+    
+    <div class="order-form">
+        <label for="item">Enter item name:</label>
+        <input type="text" id="item" placeholder="Enter item name">
+        <button onclick="addItem()">Add to Order</button>
+    </div>
+    
+    <div class="order-form">
+        <label for="anotherOrder">Do you want to add another item? (yes/no):</label>
+        <input type="text" id="anotherOrder" placeholder="yes or no">
+        <button onclick="checkAnotherOrder()">Confirm</button>
+    </div>
+    
+    <div class="total" id="total">Total: Rs0</div>
+    
+    <script>
+        let menu = {
+            'pizza': 40,
+            'pasta': 50,
+            'burger': 60,
+            'coffee': 70,
+            'butter chicken': 80
+        };
+        let orderTotal = 0;
+
+        function addItem() {
+            let item = document.getElementById("item").value.toLowerCase();
+            if (menu[item] !== undefined) {
+                orderTotal += menu[item];
+                document.getElementById("total").innerText = "Total: Rs" + orderTotal;
+                alert("Item " + item + " has been added to your order.");
+            } else {
+                alert("Sorry, " + item + " is not available.");
+            }
+        }
+
+        function checkAnotherOrder() {
+            let anotherOrder = document.getElementById("anotherOrder").value.toLowerCase();
+            if (anotherOrder === "yes") {
+                let item2 = prompt("Enter the name of the second item:").toLowerCase();
+                if (menu[item2] !== undefined) {
+                    orderTotal += menu[item2];
+                    document.getElementById("total").innerText = "Total: Rs" + orderTotal;
+                    alert("Item " + item2 + " has been added to your order.");
+                } else {
+                    alert("Ordered item " + item2 + " is not available.");
+                }
+            }
+        }
+    </script>
+</body>
+</html>
