@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Canvas Animation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+        
+        canvas {
+            display: block;
+            box-shadow: 0 0 30px rgba(0, 150, 255, 0.3);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 198, 255, 0.4);
+        }
+        
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="animatedCanvas"></canvas>
+    
+    <div class="controls">
+        <h2>Animation Controls</h2>
+        <button id="startBtn">Start Animation</button>
+        <button id="stopBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+        <div>
+            <label for="particleCount">Particles: </label>
+            <input type="range" id="particleCount" min="10" max="500" value="150">
+            <span id="countValue">150</span>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div>FPS: <span id="fpsCounter">0</span></div>
+        <div>Particles: <span id="particleCounter">0</span></div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('animatedCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+        resizeCanvas();
+        
+        // Animation variables
+        let animationId = null;
+        let particles = [];
+        let lastTime = 0;
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        
+        // Particle class with physics
+        class Particle {
+            constructor(x, y) {
+                this.x = x || Math.random() * canvas.width;
+                this.y = y || Math.random() * canvas.height;
+                this.size = Math.random() * 4 + 1;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+                this.color = `hsla(${Math.random() * 360}, 100%, 50%, 0.7)`;
+                this.originalX = this.x;
+                this.originalY = this.y;
+                this.angle = Math.random() * Math.PI * 2;
+                this.velocity = Math.random() * 0.5 + 0.1;
+                this.oscillationRadius = Math.random() * 100 + 50;
+            }
+            
+            update(mouse) {
+                // Oscillate around original position
+                this.angle += this.velocity * 0.01;
+                
+                // Calculate new position with oscillation
+                const targetX = this.originalX + Math.cos(this.angle) * this.oscillationRadius;
+                const targetY = this.originalY + Math.sin(this.angle) * this.oscillationRadius;
+                
+                // Smooth movement towards target
+                this.x += (targetX - this.x) * 0.05;
+                this.y += (targetY - this.y) * 0.05;
+                
+                // Mouse interaction
+                if (mouse.x && mouse.y) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 100) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (100 - distance) / 100;
+                        
+                        this.x -= forceDirectionX * force * 10;
+                        this.y -= forceDirectionY * force * 10;
+                    }
+                }
+            }
+            
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Glow effect
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            
+            connect(particles) {
+                for (let particle of particles) {
+                    const dx = this.x - particle.x;
+                    const dy = this.y - particle.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `hsla(${Math.random() * 360}, 100%, 50%, ${1 - distance/100})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(this.x, this.y);
+                        ctx.lineTo(particle.x, particle.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        // Mouse position
+        const mouse = {
+            x: null,
+            y: null
+        };
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        
+        canvas.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+        
+        // Initialize particles
+        function initParticles() {
+            particles = [];
+            const count = parseInt(document.getElementById('particleCount').value);
+            for (let i = 0; i < count; i++) {
+                // Distribute particles more evenly
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                particles.push(new Particle(x, y));
+            }
+            document.getElementById('particleCounter').textContent = count;
+        }
+        
+        // Animation loop with delta time for smooth animation
+        function animate(timestamp) {
+            if (!lastTime) {
+                lastTime = timestamp;
+            }
+            
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            // Calculate FPS
+            frameCount++;
+            if (timestamp - lastFpsUpdate >= 1000) {
+                fps = Math.round((frameCount * 1000) / (timestamp - lastFpsUpdate));
+                document.getElementById('fpsCounter').textContent = fps;
+                frameCount = 0;
+                lastFpsUpdate = timestamp;
+            }
+            
+            // Clear canvas with fade effect
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw particles
+            for (let particle of particles) {
+                particle.update(mouse);
+                particle.draw();
+            }
+            
+            // Draw connections between particles
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].connect(particles.slice(i));
+            }
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Control buttons
+        document.getElementById('startBtn').addEventListener('click', () => {
+            if (!animationId) {
+                lastTime = 0; // Reset animation timing
+                animationId = requestAnimationFrame(animate);
+            }
+        });
+        
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            initParticles();
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = requestAnimationFrame(animate);
+            }
+        });
+        
+        // Particle count slider
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            document.getElementById('countValue').textContent = e.target.value;
+            initParticles();
+        });
+        
+        // Initialize
+        initParticles();
+        animate(); // Start animation automatically
+    </script>
+</body>
+</html>
